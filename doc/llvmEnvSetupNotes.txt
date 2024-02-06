@@ -1,0 +1,111 @@
+Steps to set up environment
+
+Get latest alpine
+
+export from docker
+
+run this to start an image:
+docker run alpine sh ls /
+
+run this to list the running images and grab the image id:
+docker container ls
+
+run this to export the image id to a tar file of its rootfs
+docker export <id> > file.tar
+
+Now import the rootfs into wsl:
+wsl --import <wsl distro name> <dir to store virtfs> file.tar
+
+vscode needs libstdc++, and git for git integration so on new virt:
+apk update
+apk add libstdc++ git
+
+Stop here.
+
+To save storage and speed-up the checkout time, you may want to do a shallow clone. For example, to get the latest revision of the LLVM project, use
+git clone --depth 1 https://github.com/llvm/llvm-project.git
+
+You are likely only interested in the main branch moving forward, if you don’t want git fetch (or git pull) to download user branches, use:
+sed 's#fetch = +refs/heads/\*:refs/remotes/origin/\*#fetch = +refs/heads/main:refs/remotes/origin/main#' -i llvm-project/.git/config
+
+Needed to build llvm-project:
+apk add cmake clang ninja python3
+
+Configure the project:
+cmake -S llvm -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/home/sir/images/llvm
+
+Build. This required just a bit of hacking for some header file weirdness:
+cmake --build build
+
+install:
+cmake --build build -t install
+
+This script installs later llvm toolchains on ubuntu and debian. use major ver as int:
+wget -O - https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh ${LLVM_VERSION} all
+sudo ./llvm.sh all
+
+from https://apt.llvm.org/ you can put this in /etc/apt/sources.list.d/llvm to add repo:
+deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main
+deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main
+
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+
+# LLVM
+apt-get install libllvm-18-ocaml-dev libllvm18 llvm-18 llvm-18-dev llvm-18-doc llvm-18-examples llvm-18-runtime
+# Clang and co
+apt-get install clang-18 clang-tools-18 clang-18-doc libclang-common-18-dev libclang-18-dev libclang1-18 clang-format-18 python3-clang-18 clangd-18 clang-tidy-18
+# compiler-rt
+apt-get install libclang-rt-18-dev
+# polly
+apt-get install libpolly-18-dev
+# libfuzzer
+apt-get install libfuzzer-18-dev
+# lldb
+apt-get install lldb-18
+# lld (linker)
+apt-get install lld-18
+# libc++
+apt-get install libc++-18-dev libc++abi-18-dev
+# OpenMP
+apt-get install libomp-18-dev
+# libclc
+apt-get install libclc-18-dev
+# libunwind
+apt-get install libunwind-18-dev
+# mlir
+apt-get install libmlir-18-dev mlir-18-tools
+# bolt
+apt-get install libbolt-18-dev bolt-18
+# flang
+apt-get install flang-18
+# wasm support
+apt-get install libclang-rt-18-dev-wasm32 libclang-rt-18-dev-wasm64 libc++-18-dev-wasm32 libc++abi-18-dev-wasm32 libclang-rt-18-dev-wasm32 libclang-rt-18-dev-wasm64
+
+#!/usr/bin/env sh
+llvm_version=18
+sudo update-alternatives --install \
+        /usr/bin/llvm-config       llvm-config      /usr/bin/llvm-config-{$llvm_version}  {$llvm_version} \
+--slave /usr/bin/llvm-ar           llvm-ar          /usr/bin/llvm-ar-{$llvm_version} \
+--slave /usr/bin/llvm-as           llvm-as          /usr/bin/llvm-as-{$llvm_version} \
+--slave /usr/bin/llvm-bcanalyzer   llvm-bcanalyzer  /usr/bin/llvm-bcanalyzer-{$llvm_version} \
+--slave /usr/bin/llvm-cov          llvm-cov         /usr/bin/llvm-cov-{$llvm_version} \
+--slave /usr/bin/llvm-diff         llvm-diff        /usr/bin/llvm-diff-{$llvm_version} \
+--slave /usr/bin/llvm-dis          llvm-dis         /usr/bin/llvm-dis-{$llvm_version} \
+--slave /usr/bin/llvm-dwarfdump    llvm-dwarfdump   /usr/bin/llvm-dwarfdump-{$llvm_version} \
+--slave /usr/bin/llvm-extract      llvm-extract     /usr/bin/llvm-extract-{$llvm_version} \
+--slave /usr/bin/llvm-link         llvm-link        /usr/bin/llvm-link-{$llvm_version} \
+--slave /usr/bin/llvm-mc           llvm-mc          /usr/bin/llvm-mc-{$llvm_version} \
+--slave /usr/bin/llvm-mcmarkup     llvm-mcmarkup    /usr/bin/llvm-mcmarkup-{$llvm_version} \
+--slave /usr/bin/llvm-nm           llvm-nm          /usr/bin/llvm-nm-{$llvm_version} \
+--slave /usr/bin/llvm-objdump      llvm-objdump     /usr/bin/llvm-objdump-{$llvm_version} \
+--slave /usr/bin/llvm-ranlib       llvm-ranlib      /usr/bin/llvm-ranlib-{$llvm_version} \
+--slave /usr/bin/llvm-readobj      llvm-readobj     /usr/bin/llvm-readobj-{$llvm_version} \
+--slave /usr/bin/llvm-rtdyld       llvm-rtdyld      /usr/bin/llvm-rtdyld-{$llvm_version} \
+--slave /usr/bin/llvm-size         llvm-size        /usr/bin/llvm-size-{$llvm_version} \
+--slave /usr/bin/llvm-stress       llvm-stress      /usr/bin/llvm-stress-{$llvm_version} \
+--slave /usr/bin/llvm-symbolizer   llvm-symbolizer  /usr/bin/llvm-symbolizer-{$llvm_version} \
+--slave /usr/bin/llvm-tblgen       llvm-tblgen      /usr/bin/llvm-tblgen-{$llvm_version} \
+--slave /usr/bin/lli               lli              /usr/bin/lli-{$llvm_version} \
+--slave /usr/bin/llc               llc              /usr/bin/llc-{$llvm_version} \
